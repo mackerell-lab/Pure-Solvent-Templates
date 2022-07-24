@@ -1,1 +1,56 @@
+The calculation of the free energies of hydration is an automated process that consists in running two scripts: fep.run and xtract.run in the vac and water directories. The scripts in this example were directly adaped from the Drude protocol.
 
+fep.run starts the required jobs using SGE. For other queueing system it needs to be adjusted. The path of the charmm executable needs to be written.
+
+xtract.run determined the contributions to the FE from vacuum and solution. It follows the protocol used in the development of the Druide FF: the chardged part is done by TI and the repulsion/dispersion contribution by WHAM.
+
+Run calc.run for final value. 
+
+In the file parset.sr the user needs to adjust the following section:
+
+ set  molecule   NMA     
+ set  nwater     250 ! 0 - gas-phase; 250 - condensed-phase
+
+ set  Drude      FALSE
+
+ set toppardir   .
+ set topparfile  @toppardir/toppar.str
+
+ !! Number of steps for the equilibration run
+ ! normal run requires 50000 steps
+ set EqStepC 10000
+ set EqStepA 10000
+ set EqStepR 10000
+
+ !! Number of steps for the production run
+ ! normal run requires 100000 steps
+ set ProdStepC 50000
+ set ProdStepA 50000
+ set ProdStepR 50000
+
+
+
+In wham_anal.run the user needs to adjust the path of the charmm executable and the variable mtime corresponding to the number of production steps:
+
+mtime=50000
+
+
+The long range correction is calculated in LRC and the user has to run the charmm script run_box_md.inp followed by anal_box_md_lrc.inp. The results are in energy_lrc.txt
+
+----------------------------------------------
+ 
+Notes on Corrections to ΔG of Charged Species
+
+(from Justin)
+
+1. There is a phase potential associated with an ion crossing the vacuum-water interface, equal to zFΦ, where z is the charge on the ion, F is the Faraday constant (23.06 kcal/mol-V), and Φ is the electrostatic Galvani potential at the vacuum-water interface. For SWM4-NDP, Φ = -545 mV (-0.545 V). So, as an example, for Mg2+, the total correction is (+2)(23.06)(-0.545) = -25.2 kcal/mol. The ΔG value obtained using the free energy scripts is an "intrinsic" ΔG and thus to obtain the "real" ΔG you need to add this correction:
+
+ΔGreal = ΔGintrinsic + zFΦ
+
+2. There is also an entropy correction that needs to be applied that reflects the compression of 1 mole of gaseous ions into 1 L in the aqueous phase (1 M concentration). This reflects a compression from an ideal gas state of 24.465 L/mol. The total correction is -RTln(1/24.465) = +1.9 kcal/mol. So, building off of the above equation:
+
+ΔGreal = ΔGintrinsic + zFΦ - RTln(1/24.465) + LRC
+
+i.e.
+
+ΔGreal = ΔGintrinsic + zFΦ + 1.9 kcal/mol + LRC 
