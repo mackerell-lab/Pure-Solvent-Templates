@@ -1,0 +1,149 @@
+*  bulk equilibration before FEP
+*  pchatterjee 2020 
+*
+dimension maxres 2000000 maxaim 12000000 maxgrp 2000000
+
+set step1 = 500000  ! timestep 0.001 ps
+set step2 = 500000 ! timestep 0.001 ps
+set temp  = 298.15    
+
+set resi  = @resi
+set nwater = 250
+set out   = output/@resi
+
+bomlev -1
+set toppar toppar
+stream toppar.str
+stream toppar/@resi_cgenff.str
+bomlev 0
+
+read sequence @resi 1
+generate SOLU FIRST NONE LAST NONE SETUP WARN
+
+read sequence TIP3 @nwater
+generate BULK FIRST NONE LAST NONE noangle nodihedral SETUP WARN
+
+write psf card name ./output/@resi.psf
+
+OPEN UNIT 1 CARD READ NAME inputs/@resi_wbox.crd
+READ coor card UNIT 1
+close unit 1
+
+print coor
+
+ener
+set EE ?ENER
+
+! Statistical information about initial box dimenstions
+coor stat
+! Calculate box dimensions
+calc a = ?xmax - ?xmin
+set box @a
+calc b = ?ymax - ?ymin
+if @b .gt. @box set box @b
+calc c = ?zmax - ?zmin
+if @c .gt. @box set box @c
+!
+! Setup PBC (Periodic Boundary Condition)
+!
+! cell toppar
+ SET BOXTYPE  = RECT
+ SET XTLTYPE  = CUBIC
+ SET A = @box
+ SET B = @box
+ SET C = @box
+ SET ALPHA = 90.0
+ SET BETA  = 90.0
+ SET GAMMA = 90.0
+ SET XCEN = 0
+ SET YCEN = 0
+ SET ZCEN = 0
+
+CRYSTAL DEFINE @XTLtype @A @B @C @alpha @beta @gamma
+crystal build noper 0 cutoff 16.0
+
+!Image centering by residue
+IMAGE BYRESID XCEN @xcen YCEN @ycen ZCEN @zcen sele resname @resi end
+IMAGE BYRESID XCEN @xcen YCEN @ycen ZCEN @zcen sele resname TIP3 end
+
+! fftx dimensions should correspond to 1 A or less; must
+! be power of 2, 3 or 5
+! -------------------------------------------------
+set fftx 32
+set ffty 32
+set fftz 32
+
+!
+! Nonbonded Options
+!
+
+nbonds atom vatom vfswitch bycb -
+       ctonnb 10.0 ctofnb 12.0 cutnb 16.0 cutim 16.0 -
+       inbfrq -1 imgfrq -1 wmin 1.0 cdie eps 1.0 -
+       ewald pmew fftx @fftx ffty @ffty fftz @fftz  kappa .34 spline order 6
+energy
+
+mini SD   nstep 100 nprint 10
+mini ABNR nstep 200 nprint 50
+
+shake bonh param fast
+
+MMFP
+GEO  sphere  RCM -
+     xref ?xcm yref ?ycm zref ?zcm -
+     force 10.0 droff 0.0 select segid SOLU end
+END
+
+set ii 0
+set jj 1
+
+! Run equilibration and Output for equilibration
+! -----------------------------------
+open unit 20 write unform name @out.@ii.dcd
+open unit 22 write form name @out.@ii.res
+
+DYNA VVER start timestep 0.001 nstep @step1 -
+     nprint 1000 iprfrq 1000 ntrfrq 1000 -
+     iunread -1 iunwri 22 iuncrd 20 iunvel -1 kunit -1 -
+     nsavc 0 nsavv 0 -
+     nose rstn tref @temp qref 50 ncyc 10 firstt @temp
+
+! Save last snapshot
+!--------------------
+! Write coordinates and system information
+! ----------------------------------------
+open write unit 10 card name @out.@ii.crd
+write coor unit 10 card
+*  Coordinate after Equilibration CRD
+*
+
+! Run Dynamics Loop
+! -----------------------------------
+
+! estimate Pmass from SYSmass (total system mass)
+! [there could be problems with exreme values, such as  Pmass << SYSmass or Pmass >> SYSmass
+scalar mass stat
+calc Pmass = int ( ?stot  /  50.0 )
+
+open unit 23 read form name @out.@ii.res
+open unit 22 write form name @out.@jj.res
+open unit 20 write unform name @out.@jj.dcd
+
+DYNA CPT leap restart time 0.002 nstep @step2 -
+     nprint 1000 iprfrq 1000 ntrfrq 1000 -
+     iunread 23 iunwri 22 iuncrd 20 iunvel -1 kunit -1 -
+     nsavc 5000 nsavv 0 -
+     PCONSTANT pref   1.0  pmass @Pmass  pgamma   20.0 -
+     HOOVER    reft @temp  tmass 2000.0  tbath   @temp  firstt @temp
+
+! Save last snapshot
+!--------------------
+! Write coordinates and system information
+! ----------------------------------------
+open write unit 10 card name @out.@jj.crd
+write coor unit 10 card
+*  lattice size: ?xtla
+*
+
+stop
+
