@@ -1,0 +1,20 @@
+# PLEASE READ THIS TO ENSURE GOOD IMPLEMENTATION - UNLESS YOU ARE ALREADY FAMILIAR OR KNOW HOW TO READ MY MIND #
+### there are 3 steps in the process of running Free energy Perturbation of Drude systems in CHARMM
+
+### use the interactive script prepare_step01.sh to prepare your systems. This script uses the templates to create directories in the paths that you will provide. You could modify/use your own files if you have better ideas!
+## Step 0 : Prepare the box with a monomer under study in the center of the water box of dimension 20X20X20 cu. A
+#### This step uses packmol to build the box.
+#### Requirements :
+#### a. A file <resi>_min.pdb in the "inputs" directory. I use the charmm optimized topology for this purpose once the molecule is throughly optimized for charges and bonded parameters. Note that the pdb file should have Drude particles too. Only then with the packmol created waterbox will have the Drude particles.
+#### b. change the path of packmol as per your setup, in step0-packmol-templ/step0-run_packmol.sh. For installation of packmol. Please follow https://installati.one/ubuntu/21.04/packmol/ for installation in Ubuntu. If you are on ocracoke, you could keep the path to use my installation. 
+####### Note the "inputs" directory has a swm4 water molecule - the water model commonly used for Drude as of 2022.
+
+
+### Step 1: equilbrate charmm waterbox (I prefer 1-2 ns but you could customize the length of the simulations for this purpose. 
+#### Requirements :
+#### a. make sure you copied the <resi>_watbox.pdb or <resi>_watbox.crd (crd is used in CHARMM - but feel free to change step1-charmmequil.inp if you want to use pdb instead.
+#### d. make sure <resi>.str file is enclosed with the parameters before running equilbration
+
+
+### fep_templates : CHARMM templates to run FEP as per Deng and Roux's windowed implementation in CHARMM (J. Phys. Chem. B 2009, 113, 8, 2234–2246)
+### FOR THE DETAILS OF THE SETUP YOU COULD FOLLOW THE METHODS FOR FEP IN J. Chem. Theory Comput. 2022, 18, 4, 2388–2407
