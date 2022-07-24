@@ -1,0 +1,7 @@
+cff-version: 1.0.0
+message: "If you use this software or data, please cite it as below."
+authors:
+  - family-names: Chatterjee
+    given-names: Payal
+title: "Pure Solvent Simulation Templates"
+date-released: 2022-07-24
