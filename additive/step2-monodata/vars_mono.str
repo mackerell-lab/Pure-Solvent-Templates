@@ -1,0 +1,12 @@
+* specific variables to be changed with residue
+*
+
+set group     %group%
+set run       %run%
+set rep       %rep%
+set residue   %resi%
+set tempr     %tempr%
+set workdir   /home/%user%/vdw/@group/@residue/additive/t@tempr/@run/@rep
+set boxdir    @workdir/step1-boxequil
+set rseed    %rseed%
+set monorseed %monorseed%

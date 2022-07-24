@@ -1,0 +1,65 @@
+* average energies of monomers
+* streams files named by input parameters "vars" and "consts"
+*
+
+!First variables, then constants!
+stream @vars.str
+stream @consts.str
+!system "mkdir -p data"
+
+!### Simulation params ###
+set timestep 0.001
+set 3 999.0  ! cutim
+set 4 999.0  ! cutnb
+set 5 950.0  ! ctonnb
+set 6 980.0  ! ctofnb
+set 7 switch
+set 8 atom
+set 9 vatom
+
+label loop
+
+!This seems to be a "cargo cult" thing
+delete atom select all end
+
+read sequence @residue @imax
+generate @residue first @frist last @lsat setup warn
+
+open unit 10 read form name @workdir/@residue.equil_addbox.crd
+read coor card unit 10
+
+!delete all but ith residue
+delete atom sele .not. resi @i end
+
+open unit 1 write form name @residue.monomer.@i.psf
+write psf card unit 1
+* psf for monomer @i
+*
+
+update inbfrq -1 ihbfrq 0 -
+@7 @8 @9 vfswitch cutnb @4 ctofnb @6 ctonnb @5
+
+! open file for trajectory
+open unit 32 write unform name @residue.monomer.@i.dcd
+
+!perform dynamics
+shake bonh para
+
+scalar fbeta set 5.0 select .not. type D* end
+
+dynamics langevin start timestep @timestep nstep @nstep iseed @rseed -
+        tstruct @tempr firstt @tempr finalt @tempr -
+        iasors 1 iasvel 1 ihtfrq 0 ieqfrq 2000 ntrfrq 2000 -
+        twindl -0.01 twindh 0.01 -
+        inbfrq @nstep iprfrq @avers nprint @nprint -
+        iunrea -1 iunwri -1 iuncrd 32 kunit -1 nsavc 5000 isvfrq -1 -
+        rbuffer 0.0 tbath @tempr
+
+form (I10)
+set rseed @monorseed
+form
+
+incr i by 1
+if @i .le. @imax goto loop
+
+stop

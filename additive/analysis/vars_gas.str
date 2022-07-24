@@ -1,0 +1,12 @@
+* specific variables to be changed with residue
+*
+
+set group     %group%
+set  run      %run%
+set  rep      %rep%
+set residue   %resi%
+set tempr     %tempr%
+set workdir /home/pchatter/vdw/@group/@residue/additive/t@tempr/@run/@rep
+set boxdir @workdir/step1-boxequil
+set monodata @workdir/step2-monodata
+set job     @run

@@ -1,0 +1,15 @@
+#$ -S /bin/sh
+#$ -cwd
+#$ -V
+#$ -j y
+#$ -N mR%run%R%rep%
+#$ -l h_data=400M,h_rt=168:00:00
+#$ -pe mpirun1 1
+#$ -R y
+
+charmm=/opt/mackerell/apps/charmm/serial/charmm-serial
+
+mpirun="mpirun --leave-session-attached"
+ulimit -c 8
+
+$mpirun $charmm vars=vars_mono consts=consts_mono -i step2-monomer.inp > step2-monomer.9.out i=147 imax=164

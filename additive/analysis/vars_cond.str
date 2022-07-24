@@ -1,0 +1,16 @@
+* specific variables to be changed with residue
+*
+
+set group     %group%
+set run       %run%
+set rep       %rep%
+set residue   %resi%
+set tempr     %tempr%
+set boxsize   %boxsize%
+set startequil 3 ! start step do you want to use for this analysis
+set endequil   4 ! end step you want to use for this analysis
+set job     @run
+set workdir /home/pchatter/vdw/@group/@residue/additive/t@tempr/@run/@rep 
+set boxdir @workdir/step1-boxequil
+
+

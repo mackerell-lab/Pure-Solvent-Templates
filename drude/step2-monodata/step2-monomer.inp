@@ -1,0 +1,101 @@
+* average energies of monomers
+* streams files named by input parameters "vars" and "consts"
+* author - Payal Chatterjee, June 2019
+*
+
+!First variables, then constants!
+stream @vars.str
+stream @consts.str
+!system "mkdir -p 2monodata"
+
+!### Simulation params ###
+set timestep 0.001
+set 3 999.0  ! cutim
+set 4 999.0  ! cutnb
+set 5 950.0  ! ctonnb
+set 6 980.0  ! ctofnb
+set 7 switch
+set 8 atom
+set 9 vatom
+
+calc num @nmolx**3
+
+label loop
+
+read sequence @residue @num
+
+open unit 10 read card name @boxdir/@residue.box.psf
+read psf card unit 10
+
+open unit 10 read card name @workdir/@residue_box_equil.crd
+read coor card unit 10 
+
+
+!delete all but ith residue
+delete atom sele .not. resi @i end
+
+ener
+
+open unit 1 write form name @residue.monomer.@i.psf
+write psf card unit 1
+* psf for monomer @i
+*
+
+update inbfrq -1 ihbfrq 0 -
+@7 @8 @9 vfswitch cutnb @4 ctofnb @6 ctonnb @5
+
+! Minimization for input
+! -------------------------------------------------
+!cons harm force 10000000.0 sele .not. type D* end
+cons fix sele .not. type D* end
+mini SD nstep 200 tolgrd 1.0e-9
+!mini ABNR nstep 600 tolgrd 1.0e-11
+
+!cons harm force 0.0 sele .not. type D* end
+cons fix sele none end 
+mini SD nstep 200 tolgrd 1.0e-9
+!mini ABNR nstep 600 tolgrd 1.0e-11
+
+ener
+!DrudeHardWall L_WALL 0.2
+
+
+!-------------------------------------------------
+! SHAKE!!!
+coor copy comp
+SHAKE bonh param tolerance 1.0e-9 -
+      nofast -
+      select .not. type D* end -
+      select .not. type D* end noreset 
+
+scalar fbeta set 5.0 select .not. type D* end
+ener
+
+!!------------------TP CONTROL AND DYNA------------------
+TPCONTROL NTHER 2  NHGAM 5.0 NHGAMD 10.0 -
+  THER 1 TREF @tempr LANG SELE .NOT. TYPE D* END -
+  THER 2 TREF 1.0 LANG SELE TYPE D* END
+
+
+! open file for trajectory
+open unit 32 write unform name @residue.monomer.@i.dcd
+
+dyna vv2 start timestep @timestep nstep @nstep iseed @rseed -
+     firstt @tempr  finalt   @tempr  iasvel 1 -
+     inbfrq -1      imgfrq   -1      ntrfrq 1000 -
+     ihbfrq  0      ilbfrq    0    -
+	 iprfreq @avers nprint @nprint -
+     iunrea -1 iunwri -1 iuncrd 32 kunit -1 nsavc 1000 isvfrq -1
+
+
+form (I10)
+set rseed @monorseed 
+form
+
+shake off
+delete atom select all end
+
+incr i by 1
+if @i .le. @imax goto loop
+
+stop

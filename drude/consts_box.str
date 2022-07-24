@@ -1,0 +1,21 @@
+* general parameters for the current series of bulk solvent simulations
+*
+
+!### External params ###
+set scratch /tmp/pchatter/drude
+set frist none ! first capping residue
+set lsat none  ! last capping residue
+set nmolx 6
+
+!### Simulation params ###
+set iter       1 ! 3*400ps prod
+set savcrd 50000 ! save every 50ps
+set nstep 400000 ! 500 ps prev equil on additive, 200ps NVT equil and 3*400 ps in NPT drude
+set avers   1000 ! setting this lower than 1ps is of little use
+set nprint  1000 ! setting this lower than 1ps is of little use
+
+!### TOPPAR ###
+bomlev -2 
+stream @workdir/toppar_drude.str
+stream @workdir/@residue.str
+bomlev -1

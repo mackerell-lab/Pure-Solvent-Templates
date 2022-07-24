@@ -1,0 +1,96 @@
+* MD simulation of a box of ETHE
+*
+
+
+!ioformat noextended
+
+stream @vars.str
+stream @consts.str
+
+set cutim  16.0  ! cutim
+set cutnb  16.0  ! cutnb
+set ctonnb 10.0  ! ctonnb
+set ctofnb 12.0  ! ctofnb
+set eatom atom
+set etrun switch
+set vatom vatom
+set vtrun vswitch
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+read sequence @residue @nmol
+generate @residue FIRST @frist LAST @lsat SETUP WARN 
+
+open unit 10 read form name @workdir/@residue.equil_addbox.crd
+read coor card unit 10
+
+!ic para
+!ic build
+!ic para
+!ic print
+!ic seed 1 H11 1 C1 1 C2
+!ic build
+coor sdrude
+coor shake
+!coor print
+
+ener
+
+! Setup crystal ----------------------------------------------------------------
+
+crystal define cubic @boxsize  @boxsize  @boxsize  90.0 90.0 90.0
+crystal build noper 0 cutoff @cutim
+
+image byres xcen 0.0 ycen 0.0 zcen 0.0 select resname @residue end
+
+update inbfrq -1 imgfrq -1 ihbfrq 0 -
+ewald pmewald kappa 0.34 fftx 32 ffty 32 fftz 32 order 6 lrc -
+@eatom @etrun @vatom @vtrun cutnb @cutnb ctonnb @ctonnb ctofnb @ctofnb -
+cutim @cutim
+
+! SHAKE!!!
+coor copy comp
+SHAKE bonh param 
+
+mini SD nstep 200 tolgrd 0.00001
+
+! start analysis
+set i @startequil 
+set f @endequil 
+
+open write unit 30 card name xtal.@job.@tempr.dat
+open write unit 31 card name energy.@job.@tempr.dat
+open write unit 32 card name dipole.@job.@tempr.dat
+
+label m_traj
+
+ open read unit 20 file name @workdir/step2-namdequil/equil.@residue.1.dcd
+ traj query unit 20
+
+ set j 2 !skip 1ps
+ label readFrame
+        calc frame = ?START + ?SKIP  * @j
+        coor dyna first 20 nunit 1 skip ?SKIP begin @frame stop @frame
+
+write title unit 30
+*?XTLA
+*
+
+energy
+
+write title unit 31
+*?ener
+*
+
+coor dipole sele all end
+
+write title unit 32
+*?rdip ?xdip ?ydip ?zdip
+*
+
+      incr j by 1
+      if j lt ?NFILE goto readFrame
+incr i by 1
+if i .le. @f goto m_traj
+
+
+stop

@@ -1,0 +1,191 @@
+* construct and heat box of arbitrary liquid
+* streams files named by input parameters "vars" and "consts"
+* author Payal Chatterjee 2019
+*
+
+DIMENS CHSIZE 3000000 MAXRES 3000000
+
+ioformat extended 
+
+!First variables, then constants!
+stream @vars.str
+stream @consts.str
+system "mkdir -p step1-boxequil"
+
+!First variables, then constants!
+
+
+!### Simulation params ###
+set 3 14.0  ! cutim
+set 4 14.0  ! cutnb
+set 5 10.0  ! ctonnb
+set 6 12.0  ! ctofnb
+set 7 switch
+set 8 atom
+set 9 vatom
+
+!Calculate crystal lattice
+calc xlatx ( @molweight * 1.660577881 / @density )**0.3333333333
+calc nmol @nmolx**3
+calc xlat @xlatx * @nmolx
+
+!!!!!The following loop to avoid rounding up xlatx values to nearest integer
+!!!!!which could then generate an incomplete box
+!calc delatx = (@xlatx  - int(@xlatx))*10
+!
+!if @delatx .le. 5 then
+!    calc xlatx = int(@xlatx + 1)
+!endif
+
+
+!determine previous step
+calc previous @current - 1
+
+!Read the equilibrated additive box
+read sequence @residue @nmol
+generate @residue FIRST NONE LAST NONE SETUP WARN DRUDE DMASS 0.4 
+
+DrudeHardWall L_WALL 0.2 !!! REMOVE HARD WALL WHEN LJ PARAMETERS ARE DEFINITIVE
+open unit 20 read card name @residue.equil_addbox.pdb ! minimized additive monomer geometry
+read coor pdb unit 20
+
+coor sdrude
+coor shake
+coor orie norot
+!coor print
+
+!mini sd step 0.001 nstep 1000 nprint 200
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+open unit 21 write form name step1-boxequil/@residue.box.psf
+write psf card unit 21
+* box of @nmol @residue
+*
+close unit 21
+
+open unit 21 write form name step1-boxequil/@residue.box.pdb
+write coor pdb unit 21
+* box of @nmol @residue
+*
+close unit 21
+
+DrudeHardWall L_WALL 0.2
+!Set up PBC
+crystal define cubic @xlat @xlat @xlat 90.00 90.00 90.00
+crystal build Noper 0 cutoff @3
+image byres xcen 0.0 ycen 0.0 zcen 0.0 sele resn @residue end
+
+set ord 6
+set kap 0.34
+
+
+!note inclusion of long-range correction
+update inbfrq -1 imgfrq -1 ihbfrq 0 -
+ewald pmewald kappa @kap fftx 32 ffty 32 fftz 32 order @ord -
+lrc @7 @8 @9 vfswitch cutimg @3 cutnb @4 ctofnb @6 ctonnb @5 bycb
+
+!Minimize box
+cons harm force 100000.0 sele .not. ( type D* .or. type LP* ) end
+mini sd step 0.0005 nstep 400 nprint 100 tolgrd 1.0e-6
+
+cons harm force 0.0 sele .not. ( type D* .or. type LP* ) end
+mini sd  step 0.0005 nstep 400 nprint 100 tolgrd 1.0e-6
+
+
+coor copy comp
+shake bonh para toler 1e-9 -
+    nofast -
+    sele .not. ( type D* ) end -
+    sele .not. ( type D* ) end noreset
+
+mini sd step 0.0005 nstep 200 nprint 100 tolgrd 1.0e-6
+
+!Write minimized box
+open unit 1 write card name step1-boxequil/@residue.box.min.pdb
+write coor pdb unit 1
+* minimized box of @nmol @residue
+* 
+
+open unit 1 write form name step1-boxequil/@residue.box.min.crd
+write coor card unit 1
+* minimized box of @nmol @residue
+* 
+
+
+bomlev 0
+!!!!!!Intial NVT equilibration after building a drude system
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+TPCONTROL NTHER 2  CMDAMP 10.0  NSTEP 20  -
+THER 1 TAU  0.1   TREF @tempr   SELECT .NOT.  TYPE D*  END  -
+THER 2 TAU  0.005 TREF 1.00   SELECT TYPE D* END 
+
+!!!! change the variable firstt to starting temperature lower the tempr - for box heating!!
+open unit 31 write form name step1-boxequil/@residue.box.0.res
+open unit 32 write unform name step1-boxequil/@residue.box.0.dcd
+  DYNAMICS  vv2      start    timestep @timestep nstep 100000  iseed @rseed -
+		  firstt   @tempr   finalt    @tempr    -
+          inbfrq      -1    imgfrq   -1   ntrfrq    1000   iprfrq  @avers nprint @nprint  -
+          iasvel       1    ihbfrq    0   ilbfrq     0  -
+          iunread     -1    iunwrite  31  iuncrd      32   kunit    -1   nsavcrd   50000 isvfrq 10000
+		  !echeck   500
+  
+!Write heated box
+open unit 20 write form name step1-boxequil/@residue.box.0.crd
+write coor card unit 20
+* @residue after heating to @tempr K
+* lattice size: ?xtla
+*
+
+!Write heated box
+open unit 20 write form name step1-boxequil/@residue.box.0.pdb
+write coor pdb unit 20
+* @residue after heating to @tempr K
+* lattice size: ?xtla
+*
+
+!system "`echo cp -p @RESIDUE.box.@PREVIOUS.res @SCRATCH/step1-boxequil/ | awk '{print tolower($0)}'`"
+!system "`echo cp -p @RESIDUE.box.@PREVIOUS.crd @SCRATCH/step1-boxequil/ | awk '{print tolower($0)}'`"
+!system "`echo cp -p @RESIDUE.box.@PREVIOUS.dcd @SCRATCH/step1-boxequil/ | awk '{print tolower($0)}'`"
+!!!!!Equilibration dynamics!!!!!!!!!!!!!!!!!!
+
+label loop_dyna
+
+  open unit 30 read form name  step1-boxequil/@residue.box.@previous.res
+  open unit 31 write form name step1-boxequil/@residue.box.@current.res
+  open unit 32 write unfo name step1-boxequil/@residue.box.@current.dcd
+  open unit 33 write unfo name step1-boxequil/@residue.box.@current.vel
+
+  TPCONTROL NTHER 2  CMDAMP 10.0  NSTEP 20  -
+  THER 1 TAU  0.1   TREF @tempr   SELECT .NOT.  TYPE D*  END  -
+  THER 2 TAU  0.005 TREF 1.00   SELECT TYPE D* END -
+  BARO   BTAU 0.2   PREF 1.00 DSCY FULL
+
+  DYNAMICS  vv2     restart    timestep @timestep nstep @nstep  iseed @rseed -
+		  firstt   @tempr   finalt    @tempr    -
+          inbfrq      -1    imgfrq   -1   ntrfrq    1000   iprfrq  @avers nprint @nprint  -
+          iasvel       1    ihbfrq    0   ilbfrq     0  -
+          iunread     30    iunwrite  31  iuncrd      32   iunvel 33  kunit    -1   nsavcrd   @savcrd  nsavv 1000 isvfrq 100000
+               
+
+  calc tott @nstep * @timestep * @current
+  open unit 20 write form name step1-boxequil/@residue.box.@current.crd
+  write coor card unit 20
+* @residue following @tott ps dynamics at @tempr K
+* lattice size: ?xtla
+* currrent = @current
+*
+
+  open unit 20 write form name step1-boxequil/@residue.box.@current.pdb
+  write coor pdb unit 20
+* @residue following @tott ps dynamics at @tempr K
+* lattice size: ?xtla
+* currrent = @current
+*
+
+ incr previous
+ incr current
+ if @current .le. @iter goto loop_dyna
+
+
+ener
+stop

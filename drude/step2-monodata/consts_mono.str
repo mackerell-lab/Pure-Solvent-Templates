@@ -1,0 +1,24 @@
+* general parameters for the current series of monomer simulations
+*
+
+!### Get monomers out of bulk solvent box ###
+set boxdir @workdir/step1-boxequil
+set eqbox 3 ! read box after 3 * 400ps eq
+
+!### Simulation params ###
+set nstep 50000 ! 25 ps eq + 25 ps prod
+set avers  10000 ! 5 prod snapshots/monomer is recommended minimum
+set nprint 10000 ! 5 prod snapshots/monomer is recommended minimum
+!!!! additional parameters needed to run Kenno's monomer.inp
+set frist none ! first capping residue
+set lsat none  ! last capping residue
+set nmolx 6
+
+
+!### TOPPAR ###
+set TOPPAR @workdir/toppar_drude
+bomlev -2 
+stream @toppar/toppar_drude_master.str
+stream @toppar/toppar_all36_dgenff.str
+stream @toppar/@residue.str
+bomlev 0

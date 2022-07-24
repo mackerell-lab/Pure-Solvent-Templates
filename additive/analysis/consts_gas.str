@@ -1,0 +1,14 @@
+* general parameters for the current series of gas-phase/monomer extraction
+*
+
+!### External params ###
+set frist none ! first capping residue
+set lsat none  ! last capping residue
+set nmol 6
+calc nmolx @nmol**3
+
+!### TOPPAR ###
+set TOPPAR @workdir/toppar
+bomlev -2
+stream @workdir/toppar.str
+bomlev 0

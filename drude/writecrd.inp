@@ -1,0 +1,30 @@
+* Writing the last frame as a crd or pdb file
+* author - Payal Chatterjee, June 2019
+*
+
+
+!ioformat noextended
+
+stream @vars.str
+stream @consts.str
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+read sequence @residue 216
+
+open unit 10 read card name @workdir/step1-boxequil/@residue.box.psf
+read psf card unit 10
+
+
+open unit 10 read coor name step2-namd_equil.dcd
+read coor file unit 10 ifile 100 ! where ifile denotes the id of the last frame of the traj - change as needed
+
+open unit 10 write card name @residue_box_equil.crd
+write coor card unit 10 
+
+open unit 10 write card name @residue_box_equil.pdb
+write coor pdb unit 10 
+
+ener
+stop
+

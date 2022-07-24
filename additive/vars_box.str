@@ -1,0 +1,14 @@
+* specific variables to be changed with residue
+*
+
+set group     %group%
+set run       %run%
+set rep       %rep%
+set residue   %resi%
+set tempr     %tempr%
+set molweight %molwt% 
+set density   %dens%
+set current 2
+set workdir /home/pchatter/vdw/@group/@residue/additive/t@tempr/@run/@rep
+set rseed    %rseed%
+

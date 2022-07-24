@@ -1,0 +1,17 @@
+* general parameters for the current series of bulk solvent simulations
+*
+
+!### External params ###
+set scratch /tmp/%user%/drude
+set frist none ! first capping residue
+set lsat none  ! last capping residue
+set nmolx 6
+calc nmol @nmolx**3
+
+!### TOPPAR ###
+set TOPPAR @workdir/toppar_drude
+bomlev -2 
+stream @toppar/toppar_drude_master.str
+stream @toppar/toppar_all36_dgenff.str
+stream @toppar/@residue.str
+bomlev 0

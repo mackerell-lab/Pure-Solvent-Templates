@@ -1,0 +1,12 @@
+* specific variables to be changed with residue
+*
+
+set group     %group%
+set run       run%run%
+set rep       rep%rep%
+set residue   %resi%
+set tempr     %tempr%
+set timestep  %timestep% 
+set workdir   /home/%user%/vdw/@group/@residue/drude/t@tempr/@run/@rep
+set rseed      %rseed%
+set monorseed   %monorseed%

@@ -1,0 +1,23 @@
+* general parameters for the current series of bulk solvent simulations
+*
+
+!### External params ###
+set scratch /tmp/pchatter
+set frist none ! first capping residue
+set lsat none  ! last capping residue
+set nmolx 6
+
+!### Simulation params ###
+set press    %pres%! pressure / atm
+set iter       1 ! 1* 100 ps + 1* 400 ps eq + 4*400ps prod
+set nstep 400000 ! 3 * 400ps eq + 400ps prod
+set avers   1000 ! setting this lower than 1ps is of little use
+set nprint  1000 ! setting this lower than 1ps is of little use
+
+!### TOPPAR ###
+set TOPPAR @workdir/toppar 
+bomlev -2
+stream @workdir/toppar.str
+!read rtf card name @toppar/top_all36_cgenff.rtf 
+!read para card flex name @toppar/par_all36_cgenff.prm 
+bomlev %bomlev%
