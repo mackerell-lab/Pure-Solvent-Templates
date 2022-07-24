@@ -1,0 +1,6 @@
+set toppar toppar/
+bomlev -2
+stream @toppar/toppar_drude_master.str
+stream @toppar/toppar_all36_dgenff.str
+stream @toppar/@residue.str
+bomlev 0

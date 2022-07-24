@@ -1,0 +1,149 @@
+* Benzene   Building box of 128 molecules
+* for the pure solvent MD simulation
+* from the box of butane
+* 
+
+bomlev 0
+
+set 3 16.0  ! cutim
+set 4 16.0  ! cutnb
+set 5 10.0  ! ctonnb
+set 6 12.0  ! ctofnb
+set 7 switch
+set 8 atom
+set 9 vatom
+
+set seed 123 456 789
+
+set timestep 0.002
+calc savefreq = 2.0/@timestep
+calc printfreq = 2.0/@timestep
+calc averfreq = 2.0/@timestep
+
+set residue XXX
+
+set nstep 300000
+
+set resn       tip3
+set segid1  @resn
+set temp    298      
+set atemp   298
+set boxsize 20.06190
+
+bomlev -1
+! Read in Topology and  Parameter files
+stream  ./toppar.str
+bomlev 0
+
+ioformat noextended
+
+set coorfile1 @residue_wbox.crd
+set coorfile2 @residue_tip3_complex_opt.pdb
+
+read sequence @residue 1
+generate @residue first none last none setup 
+
+!! Generate box
+read sequence @segid1 250
+generate @segid1 setup noangle nodihedral 
+
+open unit 10 read form name @coorfile1
+read coor card unit 10
+
+SHAKE bonh param tolerance 1.0e-9  
+
+coor print
+
+! Statistical information about initial box dimenstions
+coor stat
+! Calculate box dimensions
+calc a = ?xmax - ?xmin
+calc b = ?ymax - ?ymin
+calc c = ?zmax - ?zmin
+
+set ord 6
+set kap 0.34  !determined in ../2-pme-params
+
+!! Setup crystal
+crystal define cubic @boxsize @boxsize @boxsize 90.00 90.00 90.00
+crystal build Noper 0 cutoff @3
+image byres xcen 0.0 ycen 0.0 zcen 0.0 -
+      sele all end
+
+update inbfrq -1 imgfrq -1 ihbfrq 0 -
+ewald pmewald kappa @kap fftx 32 ffty 32 fftz 32 order @ord -
+lrc -
+@7 @8 @9 vswitch cutimg @3 cutnb @4 ctofnb @6 ctonnb @5 
+
+! minimize energy using adopted basis Newton-Raphson algorithm 200 steps
+!cons harm force 100000000. mass select .not. type D* end
+mini ABNR nstep 200 tolgrd 0.00001 cutnb @4 ctofnb @6 ctonnb @5 nprint 50
+!cons harm force 0.0 mass select all end
+
+!open unit 20 write form name geom-opt.pdb
+!write coor pdb  unit 20
+!*
+!close unit 20                                                         
+
+! Statistical info about coordinates
+coor stat 
+
+coor stat select segid @residue end
+cons hmcm force 0.5 refx ?XAVE refy ?YAVE refz ?ZAVE select segid @residue end
+
+! Set up temperature control for the NPT simulation
+bomlev -1
+  TPCONTROL NTHER 1  CMDAMP 10.0  NSTEP 20  -
+    THER 1 TAU  0.1   TREF @temp   SELECT ALL END  -
+    BARO   BTAU 0.1   PREF 1.00   DSCY
+
+set g 0
+
+open write card unit 31 name restart_@g.rst
+open write file unit 52 name @resn_box_md@atemp.trj
+
+!vv2 new velocity verlet integrator works in conjunction with TPCONTROL
+! nstep - # of MD steps; time - time step of simulation
+! ntrfrq - step frequency for stopping rotation and translation of the molecule
+! ipfrq - step frequncy for calculating averages and rms fluctuations
+! nprint - step freq for printing energy data to the output file
+! iasvel > 0  - initial assignment of velocities using Gaussian distrib.
+! first - initial temperature at which velocities are assigned
+! finalt - desired final equilibrium temperature
+! iunread - fortran unit from which dynamics restart should be read: -1 don't read
+! iunwrite - Fortran unit on which dynamics restart will be written
+! iuncrd - Fortran unit on which coordinates will be saved (trajectory file)
+! iunvel - Fortran unit on which velocities will be saved
+! kunit - Fortran unit on which total energy and its components will be written
+! nsavc - step freq for writing coordinates to trajectory file
+! nsavv - step freq for writing velocities
+! isvfrq - step frequency for writing a  restart file
+! iuno - Fortran unit to save some information from TPCONTROL
+! nsnos - frequency of writing output from TPCONTROL
+DYNA vv2 start nstep @nstep time @timestep ntrfrq @nstep -
+     iprfrq @averfreq  nprint @printfreq  -
+     iasvel -1 firstt @temp finalt @temp -
+     iseed  @seed -
+     iunread -1 iunwrite 31 iuncrd 52 iunvel -1 kunit -1 -
+     nsavc @savefreq nsavv -1
+
+
+open unit 20 write form name prod_@g.crd
+write coor cards unit 20
+* dynamics
+* in a @adim box of water
+*
+
+open unit 20 write form name prod_@g.pdb
+write coor pdb   unit 20
+* dynamics
+* in a @adim box of water
+*
+
+open write formatted unit 27 name prod_@g.psf
+write psf card unit 27
+* PSF for heme
+*
+
+stop
+
