@@ -1,0 +1,6 @@
+### steps
+## step 1 - prepare the templates from the pure_solv_template folder by replacing the variables and setting up the templates for each residue 
+## step 2 - run initial # you may use 03_setup_lhd_runs.sh after setting runlist=('init') and commenting the runlist from $paramfile
+## step 3 - create the LHD grid using 03_setup_lhd_runs.sh. Use the generated csv file as input for generating the LJ parameters (example csv : example_paramfile.csv)
+## step 4 - create_parmat.py - uses the csv file generated above to replace the atom type parameters for the objective atom types. Change the atom types in python script and the input template toppar_all36_dgenff.str
+## step 5 - run the LHD scans using 04_checkprog_calc_drude.sh 
