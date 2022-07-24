@@ -1,1 +1,4 @@
-Template for creating Drude systems for multiple or one molecule(s) for neutral systems. 
+# template for creating and running fep with CHARMM once the box is equilibrated in step1-charmmequil
+## follow the scripts as sequenced. 
+### the shell scripts are old, and I have modified them as per the needs of running fep for multiple molecules for multiple runs and multiple relicates.
+### Please go through them before using, they are not idiot proof !
