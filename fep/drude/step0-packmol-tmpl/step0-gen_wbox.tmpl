@@ -1,0 +1,26 @@
+#
+# A molecule in water
+#
+
+# All the atoms from diferent molecules will be separated at least 2.0
+# Anstroms at the solution.
+
+tolerance 2.0
+
+# The file type of input and output files is PDB
+
+filetype pdb
+
+# The name of the output file
+
+output %resi%_wbox.pdb
+
+structure inputs/%resi%_min.pdb
+  centerofmass
+  fixed 0. 0. 0. 0. 0. 0. 
+end structure
+
+structure inputs/water.drude.pdb
+  number 250
+  inside box -9.65 -9.65 -9.65 9.65 9.65 9.65
+end structure
