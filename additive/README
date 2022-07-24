@@ -1,25 +1,25 @@
-#Pure solvent calculations in CHARMM (additive) is divided into following 6 steps:
-### 1. Step0 - preparation of the box from a monomer in CHARMM, followed by equilibration. I used 216 monomers in a box - this is standard. 
-####   One must use an optimized geometry for the same. I prefer starting from an mp2 optimized geomtery.
-####   Note: if you prefer calculating pure solvent properties in Drude FF systems, make sure the atom order of additive monomer file and charmm topology
-####   matches that across the two FFs, as you will be using additive equalibrated box for Drude systems. 
-### 2. Step1 - Further equilibration of the liquid box in CHARMM and box heating.
-### 3. NAMD liquid box - production phase - used for the actual calculation of the condensed phase energies. Customize the numsteps according to convergence of the simulations. I used 600 ps to 20 ns depensing on the size of individual monomers and the property of the individual molecule. Convergence of the dielectric constant is a good indicator, but systems like alkenes, alkynes and halogen compounds take a long time to converge >= 20 ns.  
-### 4. Step2 - Equilbration of the monomers. This is done by extracting each of the 216 molecules and equilibrating them for a short time (50 to 100 ps is enough)
-####  This is labelled as step2-monodata in this setup.
-### 5. Analysis - This step calculates the gas phase and condensed phase energies over the simulations in steps 3. and 4.
+-Pure solvent calculations in CHARMM (additive) is divided into following 6 steps:
+--- 1. Step0 - preparation of the box from a monomer in CHARMM, followed by equilibration. I used 216 monomers in a box - this is standard. 
+----   One must use an optimized geometry for the same. I prefer starting from an mp2 optimized geomtery.
+----   Note: if you prefer calculating pure solvent properties in Drude FF systems, make sure the atom order of additive monomer file and charmm topology
+----   matches that across the two FFs, as you will be using additive equalibrated box for Drude systems. 
+--- 2. Step1 - Further equilibration of the liquid box in CHARMM and box heating.
+--- 3. NAMD liquid box - production phase - used for the actual calculation of the condensed phase energies. Customize the numsteps according to convergence of the simulations. I used 600 ps to 20 ns depensing on the size of individual monomers and the property of the individual molecule. Convergence of the dielectric constant is a good indicator, but systems like alkenes, alkynes and halogen compounds take a long time to converge >= 20 ns.  
+--- 4. Step2 - Equilbration of the monomers. This is done by extracting each of the 216 molecules and equilibrating them for a short time (50 to 100 ps is enough)
+----  This is labelled as step2-monodata in this setup.
+--- 5. Analysis - This step calculates the gas phase and condensed phase energies over the simulations in steps 3. and 4.
 
 
-### calculations such as extracting the molecular volume, heat of vaporization and dielectric constants are done with individual python scripts:
-#### enma.py for dielectric constant
-#### hvap.py for heat of vaporization
-#### vm.py for molecular volume
-#### expt.py for calculating the experimental vol. in cu. A from the molecular weight and liquid density. 
+--- calculations such as extracting the molecular volume, heat of vaporization and dielectric constants are done with individual python scripts:
+---- enma.py for dielectric constant
+---- hvap.py for heat of vaporization
+---- vm.py for molecular volume
+---- expt.py for calculating the experimental vol. in cu. A from the molecular weight and liquid density. 
 
 
-####### constants and variables #######
-#### I have the charmm constansts and variables listed in two different files vars*.str and consts*.str .
-#### This help in changing the variables when multiple systems needs calculations, while the constants remain same.
-#### The variables are functional group name, molecule name, molecular wt. of the molecule, liquid density, etc.
-#### Checkout the vars_box.str and consts_box.str for each step except in NAMD step, where the varibales and constansts are listed in the NAMD configuration files.
+------- constants and variables -------
+---- I have the charmm constansts and variables listed in two different files vars*.str and consts*.str .
+---- This help in changing the variables when multiple systems needs calculations, while the constants remain same.
+---- The variables are functional group name, molecule name, molecular wt. of the molecule, liquid density, etc.
+---- Checkout the vars_box.str and consts_box.str for each step except in NAMD step, where the varibales and constansts are listed in the NAMD configuration files.
 
