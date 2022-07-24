@@ -1,4 +1,4 @@
-# PLEASE READ THIS TO ENSURE GOOD IMPLEMENTATION - UNLESS YOU ARE ALREADY FAMILIAR OR KNOW HOW TO READ MY MIND #
+# PLEASE READ THIS TO ENSURE GOOD IMPLEMENTATION - UNLESS YOU ARE ALREADY FAMILIAR #
 ### there are 3 steps in the process of running Free energy Perturbation of Drude systems in CHARMM
 
 ### use the interactive script prepare_step01.sh to prepare your systems. This script uses the templates to create directories in the paths that you will provide. You could modify/use your own files if you have better ideas!
