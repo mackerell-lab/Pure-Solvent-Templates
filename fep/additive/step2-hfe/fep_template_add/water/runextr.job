@@ -1,0 +1,13 @@
+#$ -S /bin/sh
+#$ -cwd
+#$ -V
+#$ -j y
+#$ -N extract
+#$ -l h_data=500M,h_rt=168:00:00
+#$ -R y
+
+ulimit -c 4
+
+./xtract.run 
+
+
