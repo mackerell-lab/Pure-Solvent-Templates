@@ -1,0 +1,2 @@
+Setup meant for neutral molecules. charged molecules include an entropy correction term  (~ 1.9 kcal/mol) in calc.run within the fep_template directory. 
+For details about this read the README file by Justin inside that directory. 
