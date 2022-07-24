@@ -1,0 +1,229 @@
+*  pre equilibration before FEP
+*  pchatter 2020
+*
+
+DIMENS CHSIZE 2000000 MAXRES 2000000
+
+set temp  = %temp%   
+set resi  = %resi%
+set group  = %group%
+set rseed %rseed%
+
+set step1 = 1000000  ! 1ns ; timestep 0.001 ps
+set step2 = 1000000 ! 1ns ; timestep 0.001 ps
+set nwater = 250 !250
+
+system "mkdir -p output"
+set out   = output/@resi
+
+bomlev -2
+set toppar /home/pchatter/vdw/@group/fep/@resi/step1-charmmequil/parameters
+stream @toppar/toppar_drude_master.str
+stream @toppar/toppar_all36_dgenff.str
+stream @toppar/@resi.str
+bomlev 0
+
+read sequence @resi 1
+generate SOLU FIRST NONE LAST NONE SETUP WARN DRUDE DMASS 0.4 !HYPE HORD 6 KHYP 40000 RHYP 0.2 
+
+read sequence SWM4 @nwater
+generate BULK FIRST NONE LAST NONE noangle nodihedral SETUP WARN DRUDE DMASS 0.4 !HYPE HORD 6 KHYP 40000 RHYP 0.2 
+
+write psf card name @out_drude.psf
+write psf xplor card name @out_drude.xplor.psf
+
+OPEN UNIT 1 CARD READ NAME ../step0-packmol/@resi_wbox.crd
+READ coor card UNIT 1
+close unit 1
+
+coor sdrude
+coor shake
+!print coor
+
+ener
+set EE ?ENER
+
+! Statistical information about initial box dimenstions
+coor stat
+! Calculate box dimensions
+calc a = ?xmax - ?xmin
+set box @a
+calc b = ?ymax - ?ymin
+if @b .gt. @box set box @b
+calc c = ?zmax - ?zmin
+if @c .gt. @box set box @c
+!
+! Setup PBC (Periodic Boundary Condition)
+!
+! cell parameters
+ SET BOXTYPE  = RECT
+ SET XTLTYPE  = CUBIC
+ SET A = @box
+ SET B = @box
+ SET C = @box
+ SET ALPHA = 90.0
+ SET BETA  = 90.0
+ SET GAMMA = 90.0
+ SET XCEN = 0
+ SET YCEN = 0
+ SET ZCEN = 0
+
+CRYSTAL DEFINE @XTLtype @A @B @C @alpha @beta @gamma
+crystal build noper 0 cutoff 16.0
+
+!Image centering by residue
+IMAGE BYRESID XCEN @xcen YCEN @ycen ZCEN @zcen sele resname @resi end
+IMAGE BYRESID XCEN @xcen YCEN @ycen ZCEN @zcen sele resname swm4 end
+
+! Nonbonded Options
+! -------------------------------------------------
+set 3 16.0  ! cutim
+set 4 16.0  ! cutnb
+set 5 10.0  ! ctonnb
+set 6 12.0  ! ctofnb
+set 7 switch
+set 8 atom
+set 9 vatom
+set 10 vswitch ! drude
+set kap 0.34 ! epsilon for the PME
+set ord 6    ! spline order for PME
+
+! fftx dimensions should correspond to 1 A or less; must
+! be power of 2, 3 or 5
+! -------------------------------------------------
+set fftx 32
+set ffty 32
+set fftz 32
+
+update inbfrq -1 imgfrq -1 ihbfrq 0 -
+ewald pmewald kappa @kap fftx @fftx ffty @ffty fftz @fftz order @ord lrc -
+@7 @8 @9 @10 cutimg @3 cutnb @4 ctofnb @6 ctonnb @5
+
+!  turn on faster options and set-up SHAKE
+! SHAKE!!!
+! -------------------------------------------------
+coor copy comp
+SHAKE bonh param tolerance 1.0e-9 -
+      nofast -
+      select ( .not. (type D*)) end -
+      select ( .not. (type D*)) end noreset
+
+! Minimization for input 
+! -------------------------------------------------
+cons harm force 10000000.0 sele .not. type D* end
+!cons fix sele .not. type D* end
+mini SD nstep 100 tolg 0.001
+!mini ABNR nstep 100 tolg 0.01
+!cons fix sele none end
+cons harm force 0.0 sele .not. type D* end
+
+mini SD nstep 50 step 0.1 tolg 0.01
+mini SD nstep 100 step 0.02 tolg 0.01
+mini SD nstep 200 step 0.01 tolg 0.01
+energy
+! In case the energy diverges, reduce the step size !
+if ?ENER .gt. @EE then
+   !mini SD nstep 100 step 0.001 tolg 0.0001   
+endif
+if ?ENER .lt. -100000 then
+   !mini SD nstep 100 step 0.001 tolg 0.0001
+endif
+!mini CONJ nstep 100 tolg 0.0001
+!mini ABNR nstep 200 tolg 0.00001
+
+DrudeHardWall L_WALL 0.2
+
+MMFP
+GEO  sphere  RCM -
+     xref ?xcm yref ?ycm zref ?zcm -
+     force 10.0 droff 0.0 select segid SOLU end
+END
+
+! TPcontrol
+! -------------------------------------------------
+TPCONTROL NTHER 2  CMDAMP 10.0  NSTEP 20  -
+  THER 1 TAU  0.1   TREF @temp   SELECT all .and. .NOT. TYPE D* END  -
+  THER 2 TAU  0.005 TREF 1.00   SELECT TYPE D* END -
+  BARO   BTAU 0.1   PREF 1.00 DSCY
+
+set ii 0
+set jj 1
+
+! Run equilibration and Output for equilibration
+! -----------------------------------
+open unit 20 write unform name @out.@ii.dcd
+open unit 22 write form name @out.@ii.res
+
+!prnlev 5 node 0
+! Run dynamics in periodic box
+DYNAMICS  vv2      start    timestep 0.001 nstep @step1  -
+          ntrfrq    1000   iprfrq   -1  -
+          nprint    1000     iseed    54321 -
+          iasvel       1     firstt   @temp   finalt    @temp    -
+          inbfrq      -1     imgfrq   -1      ihbfrq    0       ilbfrq     0  -
+          iunread     -1     kunit -1 -
+          iunwrite    22  -
+          iuncrd      20     nsavcrd   10000
+
+
+! Save last snapshot
+!--------------------
+! Write coordinates and system information
+! ----------------------------------------
+open write unit 10 card name @out.@ii.crd
+write coor unit 10 card
+*  Coordinate after Equilibration CRD
+*
+
+!set ii 0
+!set jj 1
+
+! Run Dynamics Loop
+! -----------------------------------
+
+label trj_loop
+
+open unit 23 read form name @out.@ii.res
+open unit 22 write form name @out.@jj.res
+open unit 20 write unform name @out.@jj.dcd
+!open unit 21 write form name @out.@jj.eng
+
+! TPcontrol
+! -------------------------------------------------
+TPCONTROL NTHER 2  CMDAMP 10.0  NSTEP 20  -
+  THER 1 TAU  0.1   TREF @temp   SELECT all .and. .NOT. TYPE D* END  -
+  THER 2 TAU  0.005 TREF 1.00   SELECT TYPE D* END -
+  BARO   BTAU 0.1   PREF 1.00 DSCY
+
+
+DYNAMICS  vv2      restart    timestep 0.001 nstep @step2  -
+          ntrfrq    1000   iprfrq   -1  -
+          nprint    1000     iseed    @rseed -
+          iasvel       1     firstt   @temp   finalt    @temp    -
+          inbfrq      -1     imgfrq   -1      ihbfrq    0       ilbfrq     0  -
+          iunread     23     kunit -1 -
+          iunwrite    22  -
+          iuncrd      20     nsavcrd   10000
+
+
+! Save last snapshot
+!--------------------
+! Write coordinates and system information
+! ----------------------------------------
+open write unit 10 card name @out.@jj.crd
+write coor unit 10 card
+*  lattice size: ?xtla
+*
+
+open write unit 10 card name @out.@jj.pdb
+write coor unit 10 pdb
+*  lattice size: ?xtla
+*
+
+incr ii by 1
+incr jj by 1
+
+if jj .le. 1 goto trj_loop
+
+stop
+
