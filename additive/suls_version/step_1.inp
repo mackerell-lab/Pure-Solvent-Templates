@@ -1,0 +1,120 @@
+* run box of arbitrary liquid
+* streams files named by input parameters "vars" and "consts"
+*
+
+!First variables, then constants!
+
+set toppar toppar
+stream toppar.str
+set scratch scratch
+
+! Residue
+
+set residue hexa
+set residue_mp2 hexa.crd
+set current 1
+
+! Simulation Parameters
+
+set eqbox 3 ! read box after 3 * 400ps eq
+set nstep 100000 ! 50 ps eq + 50 ps prod
+set rseed 2000000011 1400000023 900050009 444444443
+set avers 10000 ! 5 Production Snapshots of Monomers
+set nprint 10000 ! 5 Production Snapshots of Monoemrs
+set tempr 301
+set press 1
+set first none
+set last none
+set nmolx 6
+
+!### Simulation params ###
+set timestep 0.001
+set 3 14.0  ! cutim
+set 4 14.0  ! cutnb
+set 5 10.0  ! ctonnb
+set 6 12.0  ! ctofnb
+set 7 switch
+set 8 atom
+set 9 vatom
+
+!Calculate crystal lattice
+calc xlatx ( 86.18 * 1.660577881 / 0.659 )**0.3333333333
+calc nmol @nmolx**3
+calc xlat @xlatx * @nmolx
+
+!Read box
+calc previous @current - 1
+
+!!THE FOLLOWING WILL RESULT IN DISASTER IF CHARGES ARE BEING UPDATED!!!
+!open unit 1 read form name @residue.box.psf
+!read psf card unit 1
+!close unit 1
+read sequence @residue @nmol
+generate @residue first @first last @last setup warn
+open unit 1 write form name @residue.box.psf
+write psf card unit 1
+* box of @nmol @residue
+*
+close unit 1
+
+open unit 1 read form name step0-initbox/@residue.box.@previous.crd
+read coor card unit 1
+close unit 1
+system "`echo cp -p step1-boxequil/@RESIDUE.box.@PREVIOUS.res @SCRATCH | awk '{print tolower($0)}'`"
+
+!Set up PBC
+crystal define cubic @xlat @xlat @xlat 90.00 90.00 90.00
+crystal build Noper 0 cutoff @3
+image byres xcen 0.0 ycen 0.0 zcen 0.0 sele resn @residue end
+
+set ord 4
+set kap 0.34  
+!note inclusion of long-range correction
+update inbfrq -1 imgfrq -1 ihbfrq 0 -
+ewald pmewald kappa @kap fftx 32 ffty 32 fftz 32 order @ord -
+lrc @7 @8 @9 vfswitch cutimg @3 cutnb @4 ctofnb @6 ctonnb @5 bycb
+
+shake bonh para
+
+label loop_dyna
+  
+  open unit 30 read form name step0-initbox/@residue.box.@previous.res
+  open unit 31 write form name step1-boxequil/@residue.box.@current.res
+  open unit 32 write unfo name step1-boxequil/@residue.box.@current.dcd
+  
+  dynamics cpt leap restart time @timestep nstep @nstep iseed @rseed -
+    firstt @tempr finalt @tempr tstruc @tempr -
+    inbfrq -1 imgfrq -1 ntrfrq 1000 iprfrq @avers nprint @nprint -
+    iasors 1 iasvel 1 ieqfrq 0 twindl -1.0 twindh 1.0 -
+    iunrea 30 iunwri 31 iuncrd 32 kunit -1 nsavc 1000 isvfrq 10000 -
+    hoover reft @tempr tmass 100.0 -
+    pconstant pint pref @press pmass  1000.0 pgamma 0.0 tbath @tempr
+  
+  calc tott @nstep * @timestep * @current
+  open unit 20 write form name step1-boxequil/@residue.box.@current.crd
+  write coor card unit 20
+
+* @residue following @tott ps dynamics at @tempr K
+* lattice size: ?xtla
+* currrent = @current
+*
+
+  open unit 20 write card name step1-boxequil/@residue.box.@current.pdb
+  write coor pdb unit 20
+
+* @residue following @tott ps dynamics at @tempr K
+* lattice size: ?xtla
+* currrent = @current
+*
+
+ !system "`echo cp -p @SCRATCH/@RESIDUE.box.@CURRENT.res step1-boxequil | awk '{print tolower($0)}'`"
+
+ incr previous
+ incr current
+ if @current .le. @iter goto loop_dyna
+
+ else system "`echo cp -r @SCRATCH/@RESIDUE step1-boxequil | awk '{print tolower($0)}'`"
+ !system "`echo rm -r @SCRATCH/@RESIDUE`"
+ endif
+stop
+
