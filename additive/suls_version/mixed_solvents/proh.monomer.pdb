@@ -1,0 +1,16 @@
+REMARK  PROH MONOMER                                                                  
+REMARK   DATE:    10/14/22     13:28:40      CREATED BY USER: sulstice                
+ATOM      1  O1  PROH    1       0.033   0.758  -2.126  1.00  0.00      PROH
+ATOM      2  HO1 PROH    1      -0.816   0.375  -2.361  1.00  0.00      PROH
+ATOM      3  C1  PROH    1       0.062   0.867  -0.709  1.00  0.00      PROH
+ATOM      4  H11 PROH    1      -0.811   1.459  -0.356  1.00  0.00      PROH
+ATOM      5  H12 PROH    1       0.991   1.403  -0.409  1.00  0.00      PROH
+ATOM      6  C2  PROH    1       0.051  -0.534  -0.089  1.00  0.00      PROH
+ATOM      7  H21 PROH    1       0.930  -1.098  -0.477  1.00  0.00      PROH
+ATOM      8  H22 PROH    1      -0.864  -1.074  -0.423  1.00  0.00      PROH
+ATOM      9  C3  PROH    1       0.097  -0.538   1.445  1.00  0.00      PROH
+ATOM     10  H31 PROH    1       0.092  -1.580   1.832  1.00  0.00      PROH
+ATOM     11  H32 PROH    1       1.018  -0.034   1.808  1.00  0.00      PROH
+ATOM     12  H33 PROH    1      -0.784  -0.005   1.865  1.00  0.00      PROH
+TER      13      PROH     1
+END

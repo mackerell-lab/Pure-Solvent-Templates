@@ -1,0 +1,24 @@
+REMARK  HEXA MONOMER                                                                  
+REMARK   DATE:    10/14/22     13:28:40      CREATED BY USER: sulstice                
+ATOM      1  H11 HEXA    1       1.251   2.126  -2.224  1.00  0.00      HEXA
+ATOM      2  H12 HEXA    1       2.037   0.503  -2.222  1.00  0.00      HEXA
+ATOM      3  H13 HEXA    1       0.240   0.637  -2.253  1.00  0.00      HEXA
+ATOM      4  C1  HEXA    1       1.170   1.085  -1.843  1.00  0.00      HEXA
+ATOM      5  H21 HEXA    1       0.264   1.653   0.045  1.00  0.00      HEXA
+ATOM      6  H22 HEXA    1       2.054   1.602   0.064  1.00  0.00      HEXA
+ATOM      7  C2  HEXA    1       1.147   1.075  -0.311  1.00  0.00      HEXA
+ATOM      8  H31 HEXA    1       1.130  -0.223   1.427  1.00  0.00      HEXA
+ATOM      9  H32 HEXA    1       2.045  -0.866   0.028  1.00  0.00      HEXA
+ATOM     10  C3  HEXA    1       1.114  -0.329   0.320  1.00  0.00      HEXA
+ATOM     11  H41 HEXA    1      -0.040  -1.406  -1.177  1.00  0.00      HEXA
+ATOM     12  H42 HEXA    1      -0.009  -2.177   0.440  1.00  0.00      HEXA
+ATOM     13  C4  HEXA    1      -0.092  -1.198  -0.085  1.00  0.00      HEXA
+ATOM     14  H51 HEXA    1      -1.601   0.343  -0.352  1.00  0.00      HEXA
+ATOM     15  H52 HEXA    1      -2.252  -1.307  -0.109  1.00  0.00      HEXA
+ATOM     16  C5  HEXA    1      -1.470  -0.592   0.237  1.00  0.00      HEXA
+ATOM     17  H61 HEXA    1      -1.565  -1.208   2.331  1.00  0.00      HEXA
+ATOM     18  H62 HEXA    1      -2.734   0.090   1.884  1.00  0.00      HEXA
+ATOM     19  H63 HEXA    1      -0.988   0.481   2.081  1.00  0.00      HEXA
+ATOM     20  C6  HEXA    1      -1.702  -0.290   1.721  1.00  0.00      HEXA
+TER      21      HEXA     1
+END

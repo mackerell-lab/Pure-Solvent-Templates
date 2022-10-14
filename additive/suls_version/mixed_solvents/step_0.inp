@@ -1,0 +1,241 @@
+* construct and heat box of arbitrary liquid
+* streams files named by input parameters "vars" and "consts"
+*
+
+!First variables, then constants!
+set toppar toppar
+stream toppar.str 
+system "mkdir -p step0-initbox"
+
+! Simulation Parameters
+
+set eqbox 3 ! read box after 3 * 400ps eq
+set nstep 100000 ! 50 ps eq + 50 ps prod
+set rseed 2000000011 1400000023 900050009 444444443
+set avers 10000 ! 5 Production Snapshots of Monomers
+set nprint 10000 ! 5 Production Snapshots of Monoemrs
+set tempr 301
+set press 1
+set first none
+set last none
+set nmolx 6
+
+! Residue Variables
+
+set residuea hexa
+set residuea_mp2 hexa.crd
+set residueb proh
+set residueb_mp2 proh.crd
+
+!### Simulation params ###
+set timestep 0.001
+set 3 14.0  ! cutim
+set 4 14.0  ! cutnb
+set 5 10.0  ! ctonnb
+set 6 12.0  ! ctofnb
+set 7 switch
+set 8 atom
+set 9 vatom
+
+!Calculate Crystal Lattice A - Hexane
+ 
+calc xlatxa ( 86.18 * 1.660577881 / 0.659 )**0.3333333333
+calc nmola @nmolx**3
+calc xlata @xlatxa * @nmolx
+calc ctnbmax_a @xlata / 2.0 - 1.0
+
+!Calculate Crystal Lattice B - Propanol
+
+calc xlatxb ( 60.09 * 1.660577881 / 0.803 )**0.3333333333
+calc nmolb @nmolx**3 
+calc xlatb @xlatxb * @nmolx
+calc ctnbmax_b @xlatxb / 2.0 - 1.0
+
+!Generate Monomer A
+read sequence @residuea 1
+generate @residuea first @first last @last setup warn
+open unit 20 read form name @residuea_mp2.crd
+read coor card unit 20
+
+coor shake
+
+!Minimize Monomer A & Center
+coor orie norot
+mini sd nstep 1000
+
+!Write Monomer A
+open unit 1 write form name @residuea.monomer.psf
+write psf card unit 1
+* @residuea monomer
+*
+close unit 1
+open unit 1 write form name @residuea.monomer.crd
+write coor card unit 1
+* @residuea monomer
+*
+close unit 1
+open unit 1 write form name @residuea.monomer.pdb
+write coor pdb unit 1
+* @residuea monomer
+*
+close unit 1
+delete atom select all end
+
+!Generate Monomer B
+read sequence @residueb 1
+generate @residueb first @first last @last setup warn
+open unit 20 read form name @residueb_mp2.crd
+read coor card unit 20
+
+coor shake
+
+!Minimize Monomer B & Center
+coor orie norot
+mini sd nstep 1000
+
+!Write Monomer B
+open unit 1 write form name @residueb.monomer.psf
+write psf card unit 1
+* @residueb monomer
+*
+close unit 1
+open unit 1 write form name @residueb.monomer.crd
+write coor card unit 1
+* @residueb monomer
+*
+close unit 1
+open unit 1 write form name @residueb.monomer.pdb
+write coor pdb unit 1
+* @residueb monomer
+*
+close unit 1
+delete atom select all end
+
+!Generate Box A
+read sequence @residuea @nmola
+generate @residuea first @first last @last setup warn
+open unit 1 write form name @residuea.box.psf
+write psf card unit 1
+* box of @nmola @residueb
+*
+close unit 1
+
+!Generate Box B
+read sequence @residueb @nmolb
+generate @residueb first @first last @last setup warn
+open unit 1 write form name @residueb.box.psf
+write psf card unit 1
+* box of @nmolb @residueb
+*
+close unit 1
+
+set i 1
+set ii 1
+set moleculeswitchfrequency 0
+
+label coori
+  calc delxa  @i * @xlatxa
+  calc delxb  @i * @xlatxb 
+  set j 1
+  label coorj
+    calc delya  @j * @xlatxa
+    calc delyb  @j * @xlatxb 
+    set k 1
+    label coork
+      calc delza  @k * @xlatxa
+      calc delzb  @k * @xlatxb
+      label residue_selection_a
+          open unit 1 read form name @residuea.monomer.crd
+          read coor card append unit 1 ! select ( ires @i ) end
+          coor trans xdir @delxa ydir @delya zdir @delza select ( ires @ii ) end
+          calc moleculeswitchfrequency = @moleculeswitchfrequency + 1
+      label residue_selection_b
+          open unit 1 read form name @residueb.monomer.crd
+          read coor card append unit 1 ! select ( ires @i ) end
+          coor trans xdir @delxb ydir @delyb zdir @delzb select ( ires @ii ) end
+          calc moleculeswitchfrequency = @moleculeswitchfrequency - 1
+      if @molecule_switch_frequency .eq. 0 goto residue_selection_a    
+      if @molecule_switch_frequency .eq. 1 goto residue_selection_b
+      incr ii by 1
+      incr k by 1
+      if @k .le. @nmolx goto coork
+
+    incr j by 1
+    if @j .le. @nmolx goto coorj
+
+  incr i by 1
+  if @i .le. @nmolx goto coori
+
+!Write initial box
+coor orie norot
+open unit 1 write form name @residue_a.@residue_b.box.pdb
+write coor pdb unit 1
+* box of @nmol @residue_a @residue_b
+* 
+
+!Set up PBC
+crystal define cubic @xlata @xlata @xlata 90.00 90.00 90.00
+crystal build Noper 0 cutoff @3
+image byres xcen 0.0 ycen 0.0 zcen 0.0 sele resn @residuea end
+
+!note inclusion of long-range correction
+update inbfrq -1 imgfrq -1 ihbfrq 0 -
+ewald pmewald kappa 0.34 fftx 32 ffty 32 fftz 32 order 4 -
+lrc @7 @8 @9 vfswitch cutimg @3 cutnb @4 ctofnb @6 ctonnb @5 bycb
+
+!Minimize box
+mini sd nstep 10000 nprint 1000
+
+shake bonh para
+
+!Write minimized box
+open unit 1 write form name @residue_a.@residue_b.box.min.pdb
+write coor pdb unit 1
+* minimized box of @nmol @residue_a @residue_b
+* 
+open unit 1 write form name @residue_a.@residue_b.box.min.crd
+write coor card unit 1
+* minimized box of @nmol @residue_a @residue_b
+* 
+
+!Heat up box
+!open unit 31 write form name @scratch/@residue.box.0.res
+open unit 31 write form name step0-initbox/@residue.box.0.res
+open unit 32 write unfo name step0-initbox/@residue.box.0.dcd
+dynamics cpt leap start time @timestep nstep 100000 iseed @rseed -
+  firstt @tempr finalt @tempr tstruc @tempr -
+  inbfrq -1 imgfrq -1 ntrfrq 1000 iprfrq @avers nprint @nprint -
+  iasors 1 iasvel 1 ieqfrq 100 twindl -1.0 twindh 1.0 -
+  iunrea 30 iunwri 31 iuncrd 32 kunit -1 nsavc 10000 isvfrq 10000 -
+  pconstant pint pref @press pmass 1000.0 pgamma 25.0 tbath @tempr
+  
+!Write heated box
+open unit 20 write form name step0-initbox/@residue_a.@residue_b.box.0.crd
+write coor card unit 20
+* @residue_a @residue_b after heating to @tempr K
+* lattice size: ?xtla
+*
+
+open unit 30 read form name step0-initbox/@residue_a.@residue_b.box.0.res
+open unit 31 write form name step0-initbox/@residue.box.1.res
+open unit 32 write unfo name step0-initbox/@residue.box.1.dcd
+dynamics cpt leap restart time @timestep nstep @nstep iseed @rseed -
+  firstt @tempr finalt @tempr tstruc @tempr -
+  inbfrq -1 imgfrq -1 ntrfrq 1000 iprfrq @avers nprint @nprint -
+  iasors 1 iasvel 1 ieqfrq 100 twindl -1.0 twindh 1.0 -
+  iunrea 30 iunwri 31 iuncrd 32 kunit -1 nsavc 10000 isvfrq 10000 -
+  pconstant pint pref @press pmass 1000.0 pgamma 25.0 tbath @tempr
+  
+!Write heated box
+open unit 20 write form name step0-initbox/@residue_a.@residue_b.box.1.crd
+write coor card unit 20
+* @residue after heating to @tempr K
+* lattice size: ?xtla
+*
+
+!Write heated box
+open unit 20 card form name step0-initbox/@residue_a.@residue_b.box.1.pdb
+write coor pdb unit 20
+* @residue after heating to @tempr K
+* lattice size: ?xtla
+*
