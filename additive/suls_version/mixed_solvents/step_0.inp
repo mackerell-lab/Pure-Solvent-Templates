@@ -37,19 +37,18 @@ set 7 switch
 set 8 atom
 set 9 vatom
 
+!Calculations
+
+calc totalmol @nmolx**3
+
 !Calculate Crystal Lattice A - Hexane
  
 calc xlatxa ( 86.18 * 1.660577881 / 0.659 )**0.3333333333
-calc nmola @nmolx**3
+calc nmola @totalmol / 2
 calc xlata @xlatxa * @nmolx
 calc ctnbmax_a @xlata / 2.0 - 1.0
 
-!Calculate Crystal Lattice B - Propanol
-
-calc xlatxb ( 60.09 * 1.660577881 / 0.803 )**0.3333333333
-calc nmolb @nmolx**3 
-calc xlatb @xlatxb * @nmolx
-calc ctnbmax_b @xlatxb / 2.0 - 1.0
+calc nmolb @totalmol / 2
 
 !Generate Monomer A
 read sequence @residuea 1
@@ -111,72 +110,95 @@ write coor pdb unit 1
 close unit 1
 delete atom select all end
 
-!Generate Box A
-read sequence @residuea @nmola
-generate @residuea first @first last @last setup warn
-open unit 1 write form name @residuea.box.psf
-write psf card unit 1
-* box of @nmola @residueb
-*
-close unit 1
-
-!Generate Box B
-read sequence @residueb @nmolb
-generate @residueb first @first last @last setup warn
-open unit 1 write form name @residueb.box.psf
-write psf card unit 1
-* box of @nmolb @residueb
-*
-close unit 1
-
 set i 1
 set ii 1
 set moleculeswitchfrequency 0
+set temp 0
+set maxk 6
+set maxi 6
+set maxj 6
+
 
 label coori
   calc delxa  @i * @xlatxa
-  calc delxb  @i * @xlatxb 
   set j 1
   label coorj
     calc delya  @j * @xlatxa
-    calc delyb  @j * @xlatxb 
     set k 1
     label coork
       calc delza  @k * @xlatxa
-      calc delzb  @k * @xlatxb
-      label residue_selection_a
-          open unit 1 read form name @residuea.monomer.crd
-          read coor card append unit 1 ! select ( ires @i ) end
-          coor trans xdir @delxa ydir @delya zdir @delza select ( ires @ii ) end
-          calc moleculeswitchfrequency = @moleculeswitchfrequency + 1
-      label residue_selection_b
-          open unit 1 read form name @residueb.monomer.crd
-          read coor card append unit 1 ! select ( ires @i ) end
-          coor trans xdir @delxb ydir @delyb zdir @delzb select ( ires @ii ) end
-          calc moleculeswitchfrequency = @moleculeswitchfrequency - 1
-      if @molecule_switch_frequency .eq. 0 goto residue_selection_a    
-      if @molecule_switch_frequency .eq. 1 goto residue_selection_b
-      incr ii by 1
+      if @moleculeswitchfrequency .eq. 0 then  
+          if temp .eq. 0 then
+      	     open read card unit 10 name @residuea.monomer.crd
+	     read sequence coor card unit 10
+	     generate SOLV
+	     open unit 1 read form name @residuea.monomer.crd
+             read coor card append unit 1 ! select ( ires @i ) end
+             coor trans xdir @delxa ydir @delya zdir @delza select -
+               ( segid SOLV ) end
+	     incr temp by 1
+	  else
+      	     open read card unit 10 name @residuea.monomer.crd
+             read sequence coor card unit 10
+             generate TA@temp
+	     open unit 1 read form name @residuea.monomer.crd
+             read coor card append unit 1 ! select ( ires @i ) end
+	     coor trans xdir @delxa ydir @delya zdir @delza select -
+	       ( segid TA@temp ) end
+	     JOIN SOLV TA@temp RENUmber
+	     incr temp by 1
+	  endif
+          set moleculeswitchfrequency 1
+      elseif @moleculeswitchfrequency .eq. 1 then
+          if temp .eq. 0 then
+	      open read card unit 10 name @residueb.monomer.crd
+              read sequence coor card unit 10
+              generate SOLV
+	      open unit 1 read form name @residueb.monomer.crd
+              read coor card append unit 1 
+              coor trans xdir @delxa ydir @delya zdir @delza select -
+              ( segid SOLV ) end
+	      incr temp by 1
+	  else
+              open read card unit 10 name @residueb.monomer.crd
+              read sequence coor card unit 10
+              generate TA@temp
+              open unit 1 read form name @residueb.monomer.crd
+              read coor card append unit 1 ! select ( ires @i ) end
+              coor trans xdir @delxa ydir @delya zdir @delza select -
+               ( segid TA@temp ) end
+	      JOIN SOLV TA@temp RENUmber
+	      incr temp by 1
+	  endif
+          set moleculeswitchfrequency 0	  
+      endif
+!      if ii .ge. @totalmol goto exitloop
+!      incr ii by 1
       incr k by 1
-      if @k .le. @nmolx goto coork
-
+      if @k .le. @maxk goto coork
     incr j by 1
-    if @j .le. @nmolx goto coorj
-
+    if @j .le. @maxj goto coorj
   incr i by 1
-  if @i .le. @nmolx goto coori
+  if @i .le. @maxi goto coori
 
+label exitloop
+
+!!!! Come back here !!!!
 !Write initial box
 coor orie norot
-open unit 1 write form name @residue_a.@residue_b.box.pdb
+open unit 1 write form name @residuea.@residueb.box.pdb
 write coor pdb unit 1
-* box of @nmol @residue_a @residue_b
+* box of @totalmol @residuea and @residueb
 * 
+
+ioformat noext
+open write unit 10 card name @residuea.@residueb.box.xplor.psf
+write psf xplo unit 10 card
 
 !Set up PBC
 crystal define cubic @xlata @xlata @xlata 90.00 90.00 90.00
 crystal build Noper 0 cutoff @3
-image byres xcen 0.0 ycen 0.0 zcen 0.0 sele resn @residuea end
+image byres xcen 0.0 ycen 0.0 zcen 0.0 sele segid SOLV end !resn @residuea end
 
 !note inclusion of long-range correction
 update inbfrq -1 imgfrq -1 ihbfrq 0 -
@@ -189,19 +211,19 @@ mini sd nstep 10000 nprint 1000
 shake bonh para
 
 !Write minimized box
-open unit 1 write form name @residue_a.@residue_b.box.min.pdb
+open unit 1 write form name @residuea.@residueb.box.min.pdb
 write coor pdb unit 1
-* minimized box of @nmol @residue_a @residue_b
+* minimized box of @totalmol @residuea @residueb
 * 
-open unit 1 write form name @residue_a.@residue_b.box.min.crd
+open unit 1 write form name @residuea.@residueb.box.min.crd
 write coor card unit 1
-* minimized box of @nmol @residue_a @residue_b
+* minimized box of @totalmol @residuea @residueb
 * 
 
 !Heat up box
 !open unit 31 write form name @scratch/@residue.box.0.res
-open unit 31 write form name step0-initbox/@residue.box.0.res
-open unit 32 write unfo name step0-initbox/@residue.box.0.dcd
+open unit 31 write form name step0-initbox/@residuea.@residueb.box.0.res
+open unit 32 write unfo name step0-initbox/@residuea.@residueb.box.0.dcd
 dynamics cpt leap start time @timestep nstep 100000 iseed @rseed -
   firstt @tempr finalt @tempr tstruc @tempr -
   inbfrq -1 imgfrq -1 ntrfrq 1000 iprfrq @avers nprint @nprint -
@@ -210,15 +232,15 @@ dynamics cpt leap start time @timestep nstep 100000 iseed @rseed -
   pconstant pint pref @press pmass 1000.0 pgamma 25.0 tbath @tempr
   
 !Write heated box
-open unit 20 write form name step0-initbox/@residue_a.@residue_b.box.0.crd
+open unit 20 write form name step0-initbox/@residuea.@residueb.box.0.crd
 write coor card unit 20
-* @residue_a @residue_b after heating to @tempr K
+* @residuea @residueb after heating to @tempr K
 * lattice size: ?xtla
 *
 
-open unit 30 read form name step0-initbox/@residue_a.@residue_b.box.0.res
-open unit 31 write form name step0-initbox/@residue.box.1.res
-open unit 32 write unfo name step0-initbox/@residue.box.1.dcd
+open unit 30 read form name step0-initbox/@residuea.@residueb.box.0.res
+open unit 31 write form name step0-initbox/@residuea.@residueb.box.1.res
+open unit 32 write unfo name step0-initbox/@residuea.@residueb.box.1.dcd
 dynamics cpt leap restart time @timestep nstep @nstep iseed @rseed -
   firstt @tempr finalt @tempr tstruc @tempr -
   inbfrq -1 imgfrq -1 ntrfrq 1000 iprfrq @avers nprint @nprint -
@@ -227,15 +249,15 @@ dynamics cpt leap restart time @timestep nstep @nstep iseed @rseed -
   pconstant pint pref @press pmass 1000.0 pgamma 25.0 tbath @tempr
   
 !Write heated box
-open unit 20 write form name step0-initbox/@residue_a.@residue_b.box.1.crd
+open unit 20 write form name step0-initbox/@residuea.@residueb.box.1.crd
 write coor card unit 20
-* @residue after heating to @tempr K
+* @residuea and $residueb after heating to @tempr K
 * lattice size: ?xtla
 *
 
 !Write heated box
-open unit 20 card form name step0-initbox/@residue_a.@residue_b.box.1.pdb
+open unit 20 card form name step0-initbox/@residuea.@residueb.box.1.pdb
 write coor pdb unit 20
-* @residue after heating to @tempr K
+* @residuea and $residueb after heating to @tempr K
 * lattice size: ?xtla
 *
