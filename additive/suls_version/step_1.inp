@@ -26,6 +26,7 @@ set press 1
 set first none
 set last none
 set nmolx 6
+set iter 3
 
 !### Simulation params ###
 set timestep 0.001
@@ -93,18 +94,16 @@ label loop_dyna
   calc tott @nstep * @timestep * @current
   open unit 20 write form name step1-boxequil/@residue.box.@current.crd
   write coor card unit 20
-
 * @residue following @tott ps dynamics at @tempr K
 * lattice size: ?xtla
-* currrent = @current
+* current = @current
 *
 
   open unit 20 write card name step1-boxequil/@residue.box.@current.pdb
   write coor pdb unit 20
-
 * @residue following @tott ps dynamics at @tempr K
 * lattice size: ?xtla
-* currrent = @current
+* current = @current
 *
 
  !system "`echo cp -p @SCRATCH/@RESIDUE.box.@CURRENT.res step1-boxequil | awk '{print tolower($0)}'`"
