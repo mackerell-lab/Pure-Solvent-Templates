@@ -1,0 +1,16 @@
+REMARK  BENZ MONOMER                                                                  
+REMARK   DATE:    10/18/22     10:27: 7      CREATED BY USER: sulstice                
+ATOM      1  CG  BENZ    1       0.000   0.000  -1.402  1.00  0.00      BENZ
+ATOM      2  HG  BENZ    1       0.000  -0.000  -2.482  1.00  0.00      BENZ
+ATOM      3  CD1 BENZ    1       0.000  -1.214  -0.701  1.00  0.00      BENZ
+ATOM      4  HD1 BENZ    1       0.000  -2.149  -1.241  1.00  0.00      BENZ
+ATOM      5  CD2 BENZ    1       0.000   1.214  -0.701  1.00  0.00      BENZ
+ATOM      6  HD2 BENZ    1       0.000   2.149  -1.241  1.00  0.00      BENZ
+ATOM      7  CE1 BENZ    1       0.000  -1.214   0.701  1.00  0.00      BENZ
+ATOM      8  HE1 BENZ    1       0.000  -2.149   1.241  1.00  0.00      BENZ
+ATOM      9  CE2 BENZ    1       0.000   1.214   0.701  1.00  0.00      BENZ
+ATOM     10  HE2 BENZ    1       0.000   2.149   1.241  1.00  0.00      BENZ
+ATOM     11  CZ  BENZ    1       0.000   0.000   1.402  1.00  0.00      BENZ
+ATOM     12  HZ  BENZ    1       0.000  -0.000   2.482  1.00  0.00      BENZ
+TER      13      BENZ     1
+END

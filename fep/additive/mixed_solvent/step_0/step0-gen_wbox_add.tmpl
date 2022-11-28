@@ -1,0 +1,26 @@
+#
+# A molecule in Octanol
+#
+
+# All the atoms from diferent molecules will be separated at least 2.0
+# Anstroms at the solution.
+
+tolerance 2.0
+
+# The file type of input and output files is PDB
+
+filetype pdb
+
+# The name of the output file
+
+output benz_wbox.pdb
+
+structure benz.monomer.pdb
+  centerofmass
+  fixed 0. 0. 0. 0. 0. 0. 
+end structure
+
+structure hexa.monomer.pdb
+  number 216
+  inside cube 0. 0. 0. 40.  
+end structure
